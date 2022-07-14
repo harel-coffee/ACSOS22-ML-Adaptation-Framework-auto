@@ -1,0 +1,101 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+VAGRANTFILE_API_VERSION = "2"
+
+=begin
+############################
+Machine Setup Instructions
+############################
+
+
+1. Install vagrant plugins: these commands must be given manually, before running 'vagrant up' the first time
+	$vagrant plugin install vagrant-reload		# reload machine
+	$vagrant plugin install vagrant-vbguest		# install vbox guest additions (e.g., for shared folder)
+	$vagrant plugin install vagrant-disksize	# change disk size
+
+2. Boot up machines
+	# vagrant up <machine>
+
+3. Set display properties
+	3.1. $vagrant ssh -X <machine>
+	3.2 login with vagrant:vagrant
+	3.3 $startx
+	3.4 Set display resolution to 1280x768 (Required for automation scripts)
+	3.5 $DISPLAY=:0.0 xhost +SI:localuser:root (Allow sudo to use the display)
+
+=end
+
+
+# these things are installed in all machines instantiated
+$base_provision_script = <<SCRIPT
+
+	# installing pre-requisites
+	apt-get update
+	apt-get install -y build-essential
+	apt-get install -y gcc
+	apt-get install -y g++
+    apt-get install -y tmux
+    apt-get install -y git
+
+
+    apt-get update
+	apt-get install -y openjdk-8-jdk
+	apt-get install -y python3.8
+
+    # to install pip
+    apt install -y python3.8-distutils
+	apt-get -y install python3-pip
+
+	# install python packages
+	pip3 install numpy==1.22.1
+    pip3 install pandas==1.3.5
+    pip3 install matplotlib==3.5.1
+    pip3 install scipy==1.7.3
+    pip3 install scikit-learn==1.0.2
+    pip3 install seaborn==0.11.2
+    pip3 install xgboost==1.5.2
+	pip3 install statsmodels==0.13.2
+    pip3 install pandasql==0.7.3
+
+
+
+SCRIPT
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+    # always use Vagrant's default insecure key
+    config.ssh.insert_key = false
+
+	# always use X11 Forwarding with this machine
+	config.ssh.forward_x11 = true
+
+	# to avoid/allow install and uninstall of VBoxGuessAdditions.
+    config.vbguest.auto_update = false
+
+	# disable/enable automatic box update checking.
+	config.vm.box_check_update = false
+
+    config.vm.box = "bento/ubuntu-20.04"
+
+    # storage
+	#config.disksize.size = '60GB'
+
+	config.vm.define "sa4ml" do |vm_config|
+		vm_config.vm.hostname = "vm"
+
+
+		#Provisioning
+		vm_config.vm.provision "shell", inline: $base_provision_script
+
+		#VM Settings
+		vm_config.vm.provider "virtualbox" do |vb|
+				vb.name = "sa4ml"
+				vb.gui = false
+				vb.memory = "32767"	# 32GB
+				vb.cpus = "32"
+		end # of vb
+	end # of vm_config
+
+
+end # of config
